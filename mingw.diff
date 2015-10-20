@@ -1,0 +1,219 @@
+Apply this diff after running prepare.sh.
+
+It adjusts files to use mingw.h include file whereever needed.
+Also, some symbols and definitions unknown to MinGW are removed.
+
+diff -Naur signify-obsd58/base64.c signify-mingw/base64.c
+--- signify-obsd58/base64.c	Sun Oct 18 22:11:29 2015
++++ signify-mingw/base64.c	Sun Oct 18 22:09:37 2015
+@@ -42,14 +42,9 @@
+  * IF IBM IS APPRISED OF THE POSSIBILITY OF SUCH DAMAGES.
+  */
+ 
+-#include <sys/types.h>
+-#include <sys/socket.h>
+-#include <netinet/in.h>
+-#include <arpa/inet.h>
+-#include <arpa/nameser.h>
++#include "mingw.h"
+ 
+ #include <ctype.h>
+-#include <resolv.h>
+ #include <stdio.h>
+ 
+ #include <stdlib.h>
+diff -Naur signify-obsd58/crypto_api.c signify-mingw/crypto_api.c
+--- signify-obsd58/crypto_api.c	Sun Oct 18 22:11:29 2015
++++ signify-mingw/crypto_api.c	Sun Oct 18 22:09:37 2015
+@@ -3,6 +3,8 @@
+  * Public domain. Author: Ted Unangst <tedu@openbsd.org>
+  * API compatible reimplementation of functions from nacl
+  */
++#include "mingw.h"
++
+ #include <sys/types.h>
+ 
+ #include <string.h>
+diff -Naur signify-obsd58/err.c signify-mingw/err.c
+--- signify-obsd58/err.c	Sun Oct 18 22:11:29 2015
++++ signify-mingw/err.c	Sun Oct 18 22:09:37 2015
+@@ -28,12 +28,11 @@
+  * SUCH DAMAGE.
+  */
+ 
+-#include <err.h>
+ #include <stdarg.h>
+ 
+ /* PRINTFLIKE2 */
+-__dead void
+-_err(int eval, const char *fmt, ...)
++void
++err(int eval, const char *fmt, ...)
+ {
+ 	va_list ap;
+ 
+@@ -41,7 +40,4 @@
+ 	_verr(eval, fmt, ap);
+ 	va_end(ap);
+ }
+-
+-/* PRINTFLIKE2 */
+-__weak_alias(err, _err);
+ 
+diff -Naur signify-obsd58/errx.c signify-mingw/errx.c
+--- signify-obsd58/errx.c	Sun Oct 18 22:11:29 2015
++++ signify-mingw/errx.c	Sun Oct 18 22:09:37 2015
+@@ -28,12 +28,11 @@
+  * SUCH DAMAGE.
+  */
+ 
+-#include <err.h>
+ #include <stdarg.h>
+ 
+ /* PRINTFLIKE2 */
+-__dead void
+-_errx(int eval, const char *fmt, ...)
++void
++errx(int eval, const char *fmt, ...)
+ {
+ 	va_list ap;
+ 
+@@ -41,7 +40,4 @@
+ 	_verrx(eval, fmt, ap);
+ 	va_end(ap);
+ }
+-
+-/* PRINTFLIKE2 */
+-__weak_alias(errx, _errx);
+ 
+diff -Naur signify-obsd58/sha2.c signify-mingw/sha2.c
+--- signify-obsd58/sha2.c	Sun Oct 18 22:11:29 2015
++++ signify-mingw/sha2.c	Sun Oct 18 22:09:37 2015
+@@ -34,6 +34,8 @@
+  * $From: sha2.c,v 1.1 2001/11/08 00:01:51 adg Exp adg $
+  */
+ 
++#include "mingw.h"
++
+ #include <sys/types.h>
+ 
+ #include <string.h>
+diff -Naur signify-obsd58/sha2.h signify-mingw/sha2.h
+--- signify-obsd58/sha2.h	Sun Oct 18 22:11:29 2015
++++ signify-mingw/sha2.h	Sun Oct 18 22:09:37 2015
+@@ -63,7 +63,6 @@
+ 	u_int8_t	buffer[SHA512_BLOCK_LENGTH];
+ } SHA2_CTX;
+ 
+-__BEGIN_DECLS
+ void SHA224Init(SHA2_CTX *);
+ void SHA224Transform(u_int32_t state[8], const u_int8_t [SHA224_BLOCK_LENGTH]);
+ void SHA224Update(SHA2_CTX *, const u_int8_t *, size_t)
+@@ -131,6 +130,5 @@
+ char *SHA512Data(const u_int8_t *, size_t, char *)
+ 	__attribute__((__bounded__(__string__,1,2)))
+ 	__attribute__((__bounded__(__minbytes__,3,SHA512_DIGEST_STRING_LENGTH)));
+-__END_DECLS
+ 
+ #endif /* _SHA2_H */
+diff -Naur signify-obsd58/signify.c signify-mingw/signify.c
+--- signify-obsd58/signify.c	Sun Oct 18 22:11:29 2015
++++ signify-mingw/signify.c	Sun Oct 18 22:09:37 2015
+@@ -14,11 +14,10 @@
+  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+  */
++#include "mingw.h"
++
+ #include <sys/stat.h>
+ 
+-#include <netinet/in.h>
+-#include <resolv.h>
+-
+ #include <limits.h>
+ #include <stdint.h>
+ #include <fcntl.h>
+@@ -26,11 +25,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <stddef.h>
+-#include <ohash.h>
+-#include <err.h>
+ #include <unistd.h>
+-#include <readpassphrase.h>
+-#include <util.h>
+ #include <sha2.h>
+ 
+ #include "crypto_api.h"
+@@ -70,7 +65,7 @@
+ 	uint8_t sig[SIGBYTES];
+ };
+ 
+-extern char *__progname;
++char *__progname = "signify";
+ 
+ static void
+ usage(const char *error)
+@@ -83,8 +78,7 @@
+ 	    "\t%1$s -G [-n] [-c comment] -p pubkey -s seckey\n"
+ 	    "\t%1$s -S [-e] [-x sigfile] -s seckey -m message\n"
+ #endif
+-	    "\t%1$s -V [-eq] [-x sigfile] -p pubkey -m message\n",
+-	    __progname);
++	    "\tsignify -V [-eq] [-x sigfile] -p pubkey -m message\n");
+ 	exit(1);
+ }
+ 
+diff -Naur signify-obsd58/verr.c signify-mingw/verr.c
+--- signify-obsd58/verr.c	Sun Oct 18 22:11:29 2015
++++ signify-mingw/verr.c	Sun Oct 18 22:09:37 2015
+@@ -28,7 +28,6 @@
+  * SUCH DAMAGE.
+  */
+ 
+-#include <err.h>
+ #include <errno.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -37,7 +36,7 @@
+ 
+ extern char *__progname;		/* Program name, from crt0. */
+ 
+-__dead void
++void
+ _verr(int eval, const char *fmt, va_list ap)
+ {
+ 	int sverrno;
+@@ -51,6 +50,4 @@
+ 	(void)fprintf(stderr, "%s\n", strerror(sverrno));
+ 	exit(eval);
+ }
+-
+-__weak_alias(verr, _verr);
+ 
+diff -Naur signify-obsd58/verrx.c signify-mingw/verrx.c
+--- signify-obsd58/verrx.c	Sun Oct 18 22:11:29 2015
++++ signify-mingw/verrx.c	Sun Oct 18 22:09:37 2015
+@@ -28,14 +28,13 @@
+  * SUCH DAMAGE.
+  */
+ 
+-#include <err.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <stdarg.h>
+ 
+ extern char *__progname;		/* Program name, from crt0. */
+ 
+-__dead void
++void
+ _verrx(int eval, const char *fmt, va_list ap)
+ {
+ 	(void)fprintf(stderr, "%s: ", __progname);
+@@ -44,6 +43,4 @@
+ 	(void)fprintf(stderr, "\n");
+ 	exit(eval);
+ }
+-
+-__weak_alias(verrx, _verrx);
+ 
