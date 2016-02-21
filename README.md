@@ -35,8 +35,3 @@ required changes to get signify run on Windows -- it's not much!
 
 Run signify always with -V (verify) argument. If you want to create
 signatures, use signify from within OpenBSD after your installation. ;)
-
-# See also
-
-http://www.stoeckmann.org/signify for an already compiled 32 bit binary.
-It is signed with my PGP key (0x7DB470F35B0B8B18).
